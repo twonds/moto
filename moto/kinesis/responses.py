@@ -121,25 +121,8 @@ class KinesisResponse(BaseResponse):
 
     ''' Firehose '''
     def create_delivery_stream(self):
-        stream_name = self.parameters['DeliveryStreamName']
-        redshift_config = self.parameters.get('RedshiftDestinationConfiguration')
-
-        if redshift_config:
-            redshift_s3_config = redshift_config['S3Configuration']
-            stream_kwargs = {
-                'redshift_username': redshift_config['Username'],
-                'redshift_password': redshift_config['Password'],
-                'redshift_jdbc_url': redshift_config['ClusterJDBCURL'],
-                'redshift_role_arn': redshift_config['RoleARN'],
-                'redshift_copy_command': redshift_config['CopyCommand'],
-
-                'redshift_s3_role_arn': redshift_s3_config['RoleARN'],
-                'redshift_s3_bucket_arn': redshift_s3_config['BucketARN'],
-                'redshift_s3_prefix': redshift_s3_config['Prefix'],
-                'redshift_s3_compression_format': redshift_s3_config.get('CompressionFormat'),
-                'redshift_s3_buffering_hings': redshift_s3_config['BufferingHints'],
-            }
-        stream = self.kinesis_backend.create_delivery_stream(stream_name, **stream_kwargs)
+        stream_name = self.parameters.pop('DeliveryStreamName')
+        stream = self.kinesis_backend.create_delivery_stream(stream_name, **self.parameters)
         return json.dumps({
             'DeliveryStreamARN': stream.arn
         })
@@ -147,7 +130,11 @@ class KinesisResponse(BaseResponse):
     def describe_delivery_stream(self):
         stream_name = self.parameters["DeliveryStreamName"]
         stream = self.kinesis_backend.get_delivery_stream(stream_name)
-        return json.dumps(stream.to_dict())
+        d = stream.to_dict()
+        jd = json.dumps(d, sort_keys=True, indent=4)
+        print 'describe', d, jd
+        print
+        return jd
 
     def list_delivery_streams(self):
         streams = self.kinesis_backend.list_delivery_streams()
